@@ -1,0 +1,72 @@
+name: verify-patches
+
+# 在云端验证：补丁打得上、真的落进了镜像、并且重复打是无害的（幂等）。
+# 有意用**当前** linuxserver/calibre-web:latest 作为底 —— 这样 CI 同时也是
+# 「上游是否已经漂移」的早期预警：变红先分辨是上游改了，还是补丁写错了。
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 显示 base 版本
+        run: |
+          docker pull linuxserver/calibre-web:latest
+          docker image inspect linuxserver/calibre-web:latest \
+            --format 'base labels: {{index .Config.Labels "build_version"}}'
+
+      - name: 构建补丁镜像（补丁锚点失配即构建失败，这是有意设计）
+        run: docker build --pull=false -t calibre-web:patched .
+
+      - name: 断言补丁标记真的进了镜像
+        run: |
+          docker run --rm --entrypoint sh calibre-web:patched -c '
+            set -e
+            cd /app/calibre-web
+            grep -q "_cover_referer_headers" cps/helper.py
+            grep -q "_unwrap_local_cover_proxy_url" cps/helper.py
+            grep -q "cover_preview" cps/search_metadata.py
+            grep -q "cover_preview || cover" cps/templates/book_edit.html
+            grep -q "book.cover_preview || book.cover" cps/static/js/get_meta.js
+            grep -q "max-width: 509px" cps/static/css/style.css
+            echo "== 所有补丁标记都在 =="
+            printf "helper.py 里 _cover_referer_headers 出现 %s 次（= 2 个调用点 + 1 个定义）\n" \
+              "$(grep -c _cover_referer_headers cps/helper.py)"
+            grep -n "max-width: 509px" cps/static/css/style.css
+          '
+
+      - name: 幂等性 —— 对已打过补丁的文件再打一遍，应全部退出 0
+        run: |
+          docker run --rm -v "$PWD:/patches:ro" --entrypoint sh calibre-web:patched -c '
+            set -e
+            cd /app/calibre-web
+            python3 /patches/patch_cover_referer.py                    cps/helper.py
+            python3 /patches/patch_cover_url_proxy_save.py             cps/helper.py
+            python3 /patches/patch_metadata_cover_proxy.py             /app/calibre-web
+            python3 /patches/patch_mobile_nav_shift.py                 cps/static/css/style.css
+            echo "== 重复打补丁全部退出 0（幂等）=="
+          '
+
+      - name: 反向用例 —— 锚点缺失必须非 0 退出（不能静默跳过）
+        run: |
+          docker run --rm -v "$PWD:/patches:ro" --entrypoint sh calibre-web:patched -c '
+            cd /tmp && rm -rf fake && mkdir fake && printf "def nope():\n    pass\n" > fake/helper.py
+            if python3 /patches/patch_cover_referer.py fake/helper.py; then
+              echo "❌ 锚点缺失却退出 0 —— 补丁会静默失效"; exit 1
+            else
+              echo "✅ 锚点缺失时非 0 退出（构建会失败，符合预期）"
+            fi
+            if python3 /patches/patch_mobile_nav_shift.py /tmp/does-not-exist.css; then
+              echo "❌ 文件不存在却退出 0"; exit 1
+            else
+              echo "✅ 文件不存在时非 0 退出"
+            fi
+          '
+
+      - name: 镜像体积
+        run: docker image ls calibre-web:patched --format '{{.Size}}'

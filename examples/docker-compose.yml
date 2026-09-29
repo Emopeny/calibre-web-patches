@@ -1,0 +1,46 @@
+# calibre-web 启动示例（按需改路径/ID —— 别把你自己部署的真实值提交回仓库）
+#
+# 这个文件里的路径与 UID/GID 都是占位值：
+#   ./config、./library  = 相对本文件所在目录，随你放到哪里
+#   PUID/PGID            = 必须设成「书库目录的属主」，否则写不进书库，
+#                          下载/上传/编辑/转换全部失败（这是硬要求，别照抄默认值）
+services:
+  calibre-web:
+    # 用本仓库构建出的镜像；也可以用 build: . 让 compose 自己构建
+    image: calibre-web:patched
+    container_name: calibre-web
+    restart: unless-stopped
+
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+
+    ports:
+      # 建议只监听环回，公网入口交给反向代理（nginx / caddy / traefik 等）
+      - "127.0.0.1:8083:8083"
+
+    volumes:
+      - ./config:/config
+      - ./library:/books
+      # 可选：只读挂载宿主已装的 calibre 本体，容器里就有 ebook-convert 了
+      # （只读挂载，别改成可写）
+      - /opt/calibre:/opt/calibre:ro
+
+    # 日志轮转：防止容器日志把系统盘吃掉
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # 应用层存活探测。注意：不健康不会自动重启（Docker 无此原生机制），
+    # 它的作用是 ① `docker ps` 一眼看出状态 ② 供外部巡检读取。
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:8083/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+    # 内存上限：遇到畸大数据或内存泄漏时先杀容器，而不是把宿主机拖进 OOM
+    mem_limit: 1536m

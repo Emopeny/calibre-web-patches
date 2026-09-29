@@ -1,0 +1,12 @@
+# 私人关键词文件（每行一个词），供 tests/check-no-private-info.sh 载入。
+# 真实文件 .privacy-patterns 已被 .gitignore 忽略 —— 关键词绝不进仓库，
+# 否则闸门自己就把私人信息带进来了（这条是真踩过的坑）。
+#
+# 用法：
+#   cp .privacy-patterns.example .privacy-patterns && $EDITOR .privacy-patterns
+# 或临时用环境变量：
+#   BOOKWISH_PRIVACY_PATTERNS='yourdomain\.tld|your-hostname' bash tests/check-no-private-info.sh
+#
+# 下面只是示例占位，真的别照抄：
+example-domain\.tld
+example-hostname

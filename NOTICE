@@ -1,0 +1,46 @@
+calibre-web 补丁集 (calibre-web-patches)
+Copyright (C) 2026  contributors of this repo
+
+本仓库是对 calibre-web 的修改（modifications），按 GNU General Public License v3.0
+（或更新版本）分发，见同目录 LICENSE。
+
+上游项目与版权归属
+------------------
+calibre-web
+    https://github.com/janeczku/calibre-web
+    License: GPL-3.0-or-later
+    本补丁集修改的是它的以下文件：
+        cps/helper.py
+        cps/search_metadata.py
+        cps/templates/book_edit.html
+        cps/static/js/get_meta.js
+        cps/static/css/style.css
+    上游自身是 mutschler/calibreserver 的 fork。
+    Copyright (C) 2018-2019 OzzieIsaacs, cervinko, jkrehm, bodybybuddha, ok11,
+    andy29485, idalin, Kyosfonica, wuqi, Kennyl, lemmsh, falgh1, grunjol, csitko,
+    ytils, xybydy, trasba, vrabe, ruben-herold, marblepebble, JackED42, SiphonSquirrel,
+    apetresc, nanu-c, mutschler
+
+linuxserver/docker-calibre-web
+    https://github.com/linuxserver/docker-calibre-web
+    本仓库的构建底座：FROM linuxserver/calibre-web:latest，应用位于 /app/calibre-web。
+
+calibre-douban（Referer 做法的参考实现）
+    https://github.com/jnozsc/calibre-douban
+    https://github.com/fugary/calibre-douban
+    补丁 patch_cover_referer.py 的「下载封面时显式带 Referer」思路参考自该项目。
+
+Calibre
+    https://calibre-ebook.com/ (GPL-3.0)
+    本仓库不包含 Calibre 本体；示例 compose 以只读方式挂载宿主已安装的 Calibre
+    以提供 ebook-convert。
+
+无关联声明
+----------
+本仓库是非官方的社区修改，与 calibre-web、linuxserver.io、Calibre、豆瓣的
+维护者及权利人无任何关联，也未获得其背书。
+
+修改说明
+--------
+具体修改内容、改动原因与实测数据见 README.md 与各 patch_*.py 脚本顶部的注释
+（GPL-3.0 §5a「标明修改」）。
