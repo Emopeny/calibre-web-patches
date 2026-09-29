@@ -19,10 +19,21 @@
 补丁 4 的效果（真实浏览器实测，热缓存重复加载）：CLS **0.0846 → 0.0004**，
 390 / 600 / 1200px 三档宽度下导航都能点开（**没有**把 510–839px 区间的菜单删掉，见下）。
 
+## 两种用法（互为等价）
+
+- **A. 补丁覆盖层（本仓库）** —— 叠在现成的 `linuxserver/calibre-web` 镜像上构建，
+  不改上游源码树；升级 base 只需重新构建，配合 CI 能第一时间发现上游漂移。
+- **B. 真 fork（源码里就是改好的）** —— <https://github.com/Emopeny/calibre-web>，
+  分支 **`local-patches`**（该 fork 的默认分支），基点上游 tag **0.6.27**，
+  修改是 **5 个提交 / 5 个文件**。两边的文件**字节级相同**（git blob 哈希一致）。
+
+想自己改源码、或要基于它打更多补丁 → 走 B；只想尽快跑起来、或想继续用
+linuxserver 的镜像（已含 ebook-convert 依赖、s6 等） → 走 A。
+
 ## 用法
 
 ```bash
-git clone https://github.com/<you>/calibre-web-patches && cd calibre-web-patches
+git clone https://github.com/Emopeny/calibre-web-patches && cd calibre-web-patches
 
 # 方式 A：直接构建（默认 base = linuxserver/calibre-web:latest）
 docker build --pull=false -t calibre-web:patched .
